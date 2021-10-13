@@ -1,4 +1,4 @@
-(define-module (language jessie parser)
+(define-module (language json parser)
   #:use-module (ice-9 peg)
   #:use-module (ice-9 match)
   )
