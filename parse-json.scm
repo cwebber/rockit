@@ -1,7 +1,6 @@
 (define-module (language json parser)
   #:use-module (ice-9 peg)
-  #:use-module (ice-9 match)
-  )
+  #:use-module (ice-9 match))
 
 
 ;;; JSON level
@@ -236,10 +235,6 @@
 (define (string->json str)
   (define ptree
     (peg:tree (match-pattern start str)))
-  (define (flatten lst)
-    (match lst
-      [((inner-lst ...)) inner-lst]
-      [other other]))
   (define (join-string-elts string-elts)
     (apply string-append
            (map (match-lambda
@@ -256,13 +251,13 @@
                    (list->string (list (integer->char (hex-str->int hex-str))))])
                 string-elts)))
   (define (parse-dstructure elt)
-    (match (flatten elt)
+    (match elt
       [('STRING string-elts ...)
        (join-string-elts string-elts)]
       [('record propdefs ...)
-       (let lp ([propdefs propdefs]
+       (let lp ([propdefs (keyword-flatten '(propDef) propdefs)]
                 [alist '()])
-         (match (flatten propdefs)
+         (match propdefs
            ['() alist]
            [('propDef ('propName ('STRING key-string-elts ...))
                       val)
