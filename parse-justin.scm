@@ -1,3 +1,7 @@
+;;; (C) 2021 Christine Lemmer-Webber, released as Apache v2
+;;; Also code borrowed from Agoric's "jessica" package, also Apache v2
+
+
 (define-module (language justin parser)
   #:use-module (ice-9 peg)
   #:use-module (ice-9 match))
