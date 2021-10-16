@@ -98,7 +98,7 @@
     (newline op))
 
   (define (write-block block-exprs)
-    (for-each-sep write-statement block-exprs " "))
+    (for-each-sep write-statement block-exprs "\n"))
 
   (define (write-statement expr)
     (define (gather-elif-middle elif-middle)
@@ -205,8 +205,7 @@
     (when else-arm
       (dop " else {")
       (write-statement else-arm)
-      (dop "}"))
-    (newline op))
+      (dop "}")))
 
   (define (write-array items)
     (dop "[")
