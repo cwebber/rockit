@@ -93,7 +93,7 @@
   '(+ - / *))
 
 (define single-infixer-ops
-  '(=== ==! %))
+  '(=== ==! % += -=))
 
 (define (multi-infixer-op? obj)
   (member obj multi-infixer-ops))
