@@ -381,6 +381,12 @@
 
   (define (write-function expr)
     (match expr
+      [(_ (params ...) rhs)
+       (dop "(")
+       (write-func-params params)
+       (dop ") => (") ;; ISSUE: avoid () when not needed? or let eslint do that?
+       (write-expr rhs)
+       (dop ") ")]
       [(_ (params ...) body ...)
        (dop "function (")
        (write-func-params params)
