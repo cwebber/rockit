@@ -281,7 +281,7 @@
        (write-reclike propdefs)]
       [('defn _ ...)
        (write-named-function expr)]
-      [((or 'fn 'function 'λ) ...)
+      [((or 'fn 'function 'λ) _ ...)
        (write-function expr)]
 
       [((? single-infixer-op? infixer-op) arg1 arg2)
