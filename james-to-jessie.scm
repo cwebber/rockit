@@ -435,6 +435,23 @@
     (defconst origin (%r (: getX (fn () 0)) (: getY (fn () 0))))
     (.-> console (.log (.-> origin (.getY)))))))
 
+(display "maker\n")
+(display
+ (james->jessie-str
+  '(module
+    (defconst makeCounter (fn (init)
+                              (let value init)
+                              (return (%r
+                                       (: increment (fn () (+= value 1)))
+                                       (: decrement (fn () (-= value 1)))
+                                       (: makeOffsetCounter
+                                          (fn (delta) (makeCounter (+ value delta))) )
+                                       )) ))
+    (defconst c1 (makeCounter 1))
+    (.-> c1 (.increment))
+    (.-> console (.log (.-> c1 (.decrement))))
+    )))
+
 (display "** hasher.js: **\n")
 (display
  (james->jessie-str '(module
