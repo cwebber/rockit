@@ -428,6 +428,13 @@
 
   (write-top james-expr))
 
+(display "Simple Objects: stateless singleton\n")
+(display
+ (james->jessie-str
+  '(module
+    (defconst origin (%r (: getX (fn () 0)) (: getY (fn () 0))))
+    (.-> console (.log (.-> origin (.getY)))))))
+
 (display "** hasher.js: **\n")
 (display
  (james->jessie-str '(module
