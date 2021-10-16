@@ -452,6 +452,60 @@
     (.-> console (.log (.-> c1 (.decrement))))
     )))
 
+(display "** mint **\n")
+(display
+ (james->jessie-str
+  '(module
+    (defn (makeMint)
+      (defconst ledger (makeWeakMap))
+
+      (defconst issuer
+        (harden (%r (: makeEmptyPurse (fn () (.-> mint (.makePurse 0)))))))
+
+      (defconst mint
+        (harden
+         (%r
+          (: makePurse
+             (fn (initialBalance)
+                 (defconst purse
+                   (harden
+                    (%r
+                     (: getIssuer (fn () issuer))
+                     (: getBalance (fn () (.-> ledger (.get purse))))
+
+                     (: deposit (fn (amount src)
+                                    (Nat (+ (.-> ledger (.get purse)) (Nat amount)))
+                                    (.-> ledger (.set src (- (Nat (.-> ledger (.get src))) amount)))
+                                    (.-> ledger (.set purse (+ (.-> ledger (.get purse)) amount)))
+                                    ))
+                     (: withdraw (fn (amount)
+                                     (defconst newPurse (.-> issuer (.makeEmptyPurse)))
+                                     (.-> newPurse (.deposit amount purse))
+                                     (return newPurse)))
+                     )))
+
+                 (.-> ledger (.set purse initialBalance))
+                 (return purse)
+                 ))
+          )))
+
+      (return mint)
+      )
+
+    ;; example from http://erights.org/elib/capability/ode/ode-capabilities.html
+    (defconst carolMint (makeMint))
+    (defconst aliceMainPurse (.-> carolMint (.makePurse 1000)))
+    (defconst bobMainPurse (.-> carolMint (.makePurse 0)))
+    (defconst paymentForBob (.-> aliceMainPurse (.withdraw 10)))
+
+    ;; (.-> bob (.foo paymentForBob))
+    (.-> bobMainPurse (.deposit 10 paymentForBob))
+
+    (.-> console (.log (.-> aliceMainPurse (.getBalance))))
+    (.-> console (.log (.-> bobMainPurse (.getBalance))))
+    )
+  ))
+
 (display "** hasher.js: **\n")
 (display
  (james->jessie-str '(module
