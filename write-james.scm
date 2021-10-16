@@ -36,11 +36,16 @@
     break else new var case finally return
     void catch for switch while continue
     function this with default if throw
-    delete in try do instanceof typeof))
+    delete in try do instanceof typeof let))
 
 (define james-extra-special-terms
   '(fn
-    defn begin))
+    defn begin
+    def
+
+    ;; ones that aren't valid-id? anyway
+    m.))
+
 
 (define james-special-terms
   (append jessie-special-terms james-extra-special-terms))
@@ -50,15 +55,26 @@
     (lambda (op)
       (write-james->jessie james-expr op))))
 
-(define (dot-symbol? obj)
+(define dot-method-rx
+  (make-regexp "^\\.[$A-Za-z_][$A-Za-z0-9_]*$"))
+(define (dot-method? obj)
   (and (symbol? obj)
-       (eq? (string-ref (symbol->string obj) 0) #\.)))
+       (regexp-exec dot-method-rx
+                    (symbol->string obj))))
 
 (define id-rx (make-regexp "^[$A-Za-z_][$A-Za-z0-9_]*$"))
 (define (valid-id? obj)
   (and (symbol? obj)
        (regexp-exec id-rx (symbol->string obj))
        (not (member obj jessie-special-terms))))
+
+
+(define dot-method-combined-rx
+  (make-regexp "^[$A-Za-z_][$A-Za-z0-9_]*\\.[$A-Za-z_][$A-Za-z0-9_]*$"))
+(define (dot-method-combined-symbol? obj)
+  (and (symbol? obj)
+       (regexp-exec dot-method-combined-rx
+                    (symbol->string obj))))
 ;;;; qwik tests:
 ;; (valid-id? "foo") => #f
 ;; (valid-id? 'foo)  => #t
@@ -66,6 +82,23 @@
 ;; (valid-id? 'if)   => #f
 
 (define _void (if #f #f))
+
+(define (dot-method-expr? expr)
+  (match expr
+    [('m. method-of-expr (? valid-id?))
+     #t]
+    [_ #f]))
+
+(define multi-infixer-ops
+  '(+ - / *))
+
+(define single-infixer-ops
+  '(=== ==! %))
+
+(define (multi-infixer-op? obj)
+  (member obj multi-infixer-ops))
+(define (single-infixer-op? obj)
+  (member obj single-infixer-ops))
 
 (define (write-james->jessie james-expr op)
   ;; display to out port
@@ -157,7 +190,8 @@
       [(': label-id statement)
        (write-id label-id)
        (dop ": ")
-       (write-statement statement)]
+       (write-statement statement)
+       (dop ";")]
       ;; TRY block catcher finalizer
       [('try block catch-patterns ... #:finally finally-block)
        (dop "try {")
@@ -173,6 +207,23 @@
        (dop "} ")
        (write-catch-pattern catch-pattern1)
        (for-each write-catch-pattern catch-patterns)]
+      [('set! (? valid-id? to-assign) val-expr)
+       (dop (symbol->string to-assign))
+       (dop " = ")
+       (write-expr val-expr)
+       (dop ";")]
+      [('defconst (? valid-id? id) val-expr)
+       (dop "const ")
+       (dop (symbol->string id))
+       (dop " = ")
+       (write-expr val-expr)
+       (dop ";")]
+      [((or 'let 'def) (? valid-id? id) val-expr)
+       (dop "let ")
+       (dop (symbol->string id))
+       (dop " = ")
+       (write-expr val-expr)
+       (dop ";")]
       ;; DEBUGGER SEMI
       ;;; TODO
       ;; Allow for scheme-style begin statements
@@ -180,6 +231,7 @@
        (dop "(")
        (write-block body)
        (dop ") ")]
+      
       ;; exprStatement;
       [expr (write-expr expr)
             (dop ";")]))
@@ -232,7 +284,49 @@
       [((or 'fn 'function 'λ) ...)
        (write-function expr)]
 
-      ))
+      [((? single-infixer-op? infixer-op) arg1 arg2)
+       (write-expr arg1)
+       (dop " ")
+       (dop (symbol->string infixer-op))
+       (dop " ")
+       (write-expr arg2)]
+      [((? multi-infixer-op? infixer-op) arg1 arg-rest ...)
+       (for-each-sep write-expr
+                     (cons arg1 arg-rest)
+                     (string-append " " (symbol->string infixer-op) " "))]
+
+      ;; Otherwise... it's some other evaluated procedure probably
+      [(method-of-expr (? dot-method? dot-method) args ...)
+       (write-expr expr)
+       (dop (symbol->string dot-method))
+       (dop "(")
+       (for-each-sep write-expr args ", ")
+       (dop ")")]
+      [('.-> initial-expr dot-method-calls ...)
+       (write-expr initial-expr)
+       (let lp ((dot-method-calls dot-method-calls))
+         (match dot-method-calls
+           ['() _void]
+           [(((? dot-method? dot-method) args ...) rest ...)
+            (dop (symbol->string dot-method))
+            (dop "(")
+            (for-each-sep write-expr args ", ")
+            (dop ")")
+            (lp rest)]))]
+
+      [('.m method-of-expr (? dot-method? dot-method))
+       (write-expr method-of-expr)
+       (dop (symbol->string dot-method))]
+
+      [(to-call args ...)
+       (write-expr to-call)
+       (dop "(")
+       (for-each-sep write-expr args ", ")
+       (dop ")")]
+      [(? dot-method-combined-symbol? dmc)
+       (dop (symbol->string dmc))]
+      [(? valid-id? id)
+       (dop (symbol->string id))]))
 
   ;;   FOR LEFT_PAREN declOp forOfBinding OF expr RIGHT_PAREN arm
   ;;   FOR LEFT_PAREN declaration expr? SEMI expr? RIGHT_PAREN arm
@@ -297,7 +391,11 @@
   (define (write-func-params params)
     (define (write-param param)
       (match param
-        [(? valid-id?) (write-id param)]
+        [(? valid-id? id) (write-id id)]
+        [((? valid-id? id) default-expr)
+         (dop (symbol->string id))
+         (dop " = ")
+         (write-expr default-expr)]
         ;; TODO: more coming soon
         ))
     (for-each-sep write-param params ", "))
@@ -309,8 +407,10 @@
         [(': (? valid-id? key) val)
          (dop (symbol->string key))
          (dop ": ")
-         (write-expr expr)]))
-    (for-each-sep write-propdef expr ", "))
+         (write-expr val)]))
+    (dop "{")
+    (for-each-sep write-propdef expr ", ")
+    (dop "}"))
 
   (define (write-catch-pattern expr)
     (error 'TODO))
@@ -321,3 +421,39 @@
       [(or (? integer?) (? inexact?)) (dop (number->string expr))]))
 
   (write-top james-expr))
+
+(display "** hasher.js: **\n")
+(display
+ (james->jessie-str '(module
+                      (defn (createSha256 [initial undefined])
+                        (defconst hash
+                          (createHash "sha256"))
+                        (let done #f)
+                        (defn (add more)
+                          (assert (not done))
+                          (hash.update more))
+                        (defn (finish)
+                          (assert (not done))
+                          (set! done #t)
+                          (return (hash.digest "hex")))
+                        (if initial
+                            (add initial))
+                        (return (harden (%r (: add finish)))))
+                      (harden createSHA256))))
+
+'(module
+  (defn (createSha256 [initial undefined])
+    (defconst hash
+      (createHash "sha256"))
+    (let done #f)
+    (defn (add more)
+      (assert (not done))
+      (hash.update more))
+    (defn (finish)
+      (assert (not done))
+      (set! done #t)
+      (return (hash.digest "hex")))
+    (if initial
+        (add initial))
+    (return (harden (%r (: add finish)))))
+  (harden createSHA256))
