@@ -412,7 +412,14 @@
 
   ;;   WHILE LEFT_PAREN expr RIGHT_PAREN arm
   (define (write-while expr)
-    (error 'TODO))
+    (match expr
+      [(condition body ...)
+       (dop "while (")
+       (write-expr condition)
+       (write-expr ") {")
+       (up-indentation
+        (write-block body))
+       (write-expr "}")]))
 
   ;;   SWITCH LEFT_PAREN expr RIGHT_PAREN LEFT_BRACE clause* RIGHT_BRACE
   (define (write-switch expr)
