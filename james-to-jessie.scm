@@ -315,7 +315,6 @@
        (write-named-function expr)]
       [((or 'fn 'function 'λ) _ ...)
        (write-function expr)]
-
       [((? single-infixer-op? infixer-op) arg1 arg2)
        (write-expr arg1)
        (dop " ")
@@ -415,12 +414,36 @@
 
   (define (write-function expr)
     (match expr
-      [(_ (params ...) rhs)
-       (dop "(")
-       (write-func-params params)
-       (dop ") => (") ;; ISSUE: avoid () when not needed? or let eslint do that?
-       (write-expr rhs)
-       (dop ")")]
+      ;; Arrow expressions in JS are... goofy.  They have implicit return
+      ;; whereas normal functions don't, and they have a compact representation
+      ;; that people seem to like, but given that the semantics are *not*
+      ;; the same, we are cautious about when to write them out and default to
+      ;; only when there's a an explicit return as the only part of a
+      ;; procedure body.  Otherwise out we write out a more verbose
+      ;; function representation.
+      [(_ (params ...) ('return return-expr))
+       (match params
+         [((? valid-id? one-param))
+          (write-id one-param)]
+         [_
+          (dop "(")
+          (write-func-params params)
+          (dop ")")])
+       (dop " => ")
+       (match return-expr
+         ;; TODO: Are *all* expressions safe to not wrap in parens?
+         ;;   dunno...
+         ;; certain expressions 
+         [(or (? valid-id?)
+              #t #f 'true 'false 'null 'undefined
+              (? number?))
+          (write-expr return-expr)]
+         ;; otherwise let's be careful and wrap in parens
+         [_
+          (dop "(")
+          (write-expr return-expr)
+          (dop ")")])]
+      ;; and more vanilla functions...
       [(_ (params ...) body ...)
        (dop "function (")
        (write-func-params params)
@@ -470,7 +493,7 @@
 (display
  (james->jessie-str
   '(module
-    (defconst origin (%r (: getX (fn () 0)) (: getY (fn () 0))))
+    (defconst origin (%r (: getX (fn () (return 0))) (: getY (fn () (return 0)))))
     (.-> console (.log (.-> origin (.getY)))))))
 
 (display "** maker **\n")
@@ -483,7 +506,8 @@
                                        (: increment (fn () (+= value 1)))
                                        (: decrement (fn () (-= value 1)))
                                        (: makeOffsetCounter
-                                          (fn (delta) (makeCounter (+ value delta))) )
+                                          (fn (delta) (return
+                                                       (makeCounter (+ value delta)))) )
                                        )) ))
     (defconst c1 (makeCounter 1))
     (.-> c1 (.increment))
@@ -508,7 +532,7 @@
                  (defconst purse
                    (harden
                     (%r
-                     (: getIssuer (fn () issuer))
+                     (: getIssuer (fn () (return issuer)))
                      (: getBalance (fn () (.-> ledger (.get purse))))
 
                      (: deposit (fn (amount src)
