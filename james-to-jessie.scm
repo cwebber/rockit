@@ -363,16 +363,47 @@
   ;;   FOR LEFT_PAREN declOp forOfBinding OF expr RIGHT_PAREN arm
   ;;   FOR LEFT_PAREN declaration expr? SEMI expr? RIGHT_PAREN arm
   (define (write-for expr)
-    (error 'TODO)
-    #;(match expr
-      [('for bindings body ...)
-       (display "for (" op)
-       (write-for-bindings bindings)
-       (display ") {" op)
-       (write-expr)
-       ]
+    (match expr
+      ;; for of and for in
+      [('for (((and (or 'let 'const) decl) binding-expr)
+              (and (or #:of #:in) of-or-in)
+              for-rh-expr)
+             body ...)
+       (dop "for (")
+       (dop (symbol->string decl))
+       (dop " ")
+       (write-id binding-expr)
+       (dop " ")
+       (dop (symbol->string (keyword->symbol of-or-in)))
+       (dop " ")
+       (write-expr bindingin-expr)
+       (dop ") {")
+       (up-indentation
+        (write-block body))
+       (dop "}")]
+      ;; TODO: C-style (two or?) three part or
+      ;;
+      ;; Actually I'm not sure if Jessie supports this, it looks
+      ;; like maybe only the two part one.  I'm confused...
+      ;; At any rate not all statements might be permitted in the
+      ;; third part.  So I'm unsure.
+      #;[('for (((and (or 'let 'const) decl) binding-expr)
+              continue-loop-statement
+              update-statement)
+             body ...)
+       (dop "for (")
+       (dop (symbol->string decl))
+       (dop " ")
+       (write-id binding-expr)
+       (dop "; ")
+       (write-expr continue-loop-statement)
+       (dop ") {")
+       (up-indentation
+        (write-block body))
+       (dop "}")]
       )
-    )
+      )
+    
 
   (define (write-id expr)
     (unless (valid-id? expr)
