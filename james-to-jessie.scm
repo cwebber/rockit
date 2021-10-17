@@ -400,7 +400,6 @@
        (dop " (")
        (write-func-params params)
        (dop ") {")
-       (newline-indent)
        (up-indentation
         (write-block body))
        (newline-indent)
