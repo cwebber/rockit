@@ -253,8 +253,9 @@
       ;; Allow for scheme-style begin statements
       [('begin body ...)
        (dop "(")
-       (write-block body)
-       (dop ") ")]
+       (up-indentation (write-block body))
+       (newline-indent)
+       (dop ")")]
       
       ;; exprStatement;
       [expr (write-expr expr)
@@ -262,10 +263,17 @@
 
   (define (write-if conditional-expr arm
                     elifs else-arm)
+    (define (write-arm expr)
+      (up-indentation
+       (write-block
+        (match expr
+          [('begin body ...) body]
+          [_ (list expr)])))
+      (newline-indent))
     (dop "if (")
     (write-expr conditional-expr)
     (dop ") {")
-    (write-statement arm)
+    (write-arm arm)
     (dop "}")
     (when elifs
       (let lp ([elif elifs])
@@ -274,13 +282,13 @@
            (dop " else if (")
            (write-expr elif-conditional)
            (dop ") {")
-           (write-statement elif-arm)
+           (write-arm elif-arm)
            (dop "} ")
            (lp rest)]
           ['() 'done])))
     (when else-arm
       (dop " else {")
-      (write-statement else-arm)
+      (write-arm else-arm)
       (dop "}")))
 
   (define (write-array items)
