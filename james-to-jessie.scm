@@ -262,41 +262,6 @@
       [expr (write-expr expr)
             (dop ";")]))
 
-  (define (write-if conditional-expr arm
-                    elifs else-arm)
-    (define (write-arm expr)
-      (up-indentation
-       (write-block
-        (match expr
-          [('begin body ...) body]
-          [_ (list expr)])))
-      (newline-indent))
-    (dop "if (")
-    (write-expr conditional-expr)
-    (dop ") {")
-    (write-arm arm)
-    (dop "}")
-    (when elifs
-      (let lp ([elif elifs])
-        (match elif
-          [((elif-conditional elif-arm) rest ...)
-           (dop " else if (")
-           (write-expr elif-conditional)
-           (dop ") {")
-           (write-arm elif-arm)
-           (dop "} ")
-           (lp rest)]
-          ['() 'done])))
-    (when else-arm
-      (dop " else {")
-      (write-arm else-arm)
-      (dop "}")))
-
-  (define (write-array items)
-    (dop "[")
-    (for-each-sep write-expr items ", ")
-    (dop "]"))
-
   (define (write-expr expr)
     (match expr
       ['undefined (dop "undefined")]
@@ -359,6 +324,41 @@
        (dop (symbol->string dmc))]
       [(? valid-id? id)
        (dop (symbol->string id))]))
+
+  (define (write-if conditional-expr arm
+                    elifs else-arm)
+    (define (write-arm expr)
+      (up-indentation
+       (write-block
+        (match expr
+          [('begin body ...) body]
+          [_ (list expr)])))
+      (newline-indent))
+    (dop "if (")
+    (write-expr conditional-expr)
+    (dop ") {")
+    (write-arm arm)
+    (dop "}")
+    (when elifs
+      (let lp ([elif elifs])
+        (match elif
+          [((elif-conditional elif-arm) rest ...)
+           (dop " else if (")
+           (write-expr elif-conditional)
+           (dop ") {")
+           (write-arm elif-arm)
+           (dop "} ")
+           (lp rest)]
+          ['() 'done])))
+    (when else-arm
+      (dop " else {")
+      (write-arm else-arm)
+      (dop "}")))
+
+  (define (write-array items)
+    (dop "[")
+    (for-each-sep write-expr items ", ")
+    (dop "]"))
 
   ;;   FOR LEFT_PAREN declOp forOfBinding OF expr RIGHT_PAREN arm
   ;;   FOR LEFT_PAREN declaration expr? SEMI expr? RIGHT_PAREN arm
