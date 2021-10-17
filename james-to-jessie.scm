@@ -1,4 +1,4 @@
-;; JAMES: Javascript As Middling Expression of Sexprs
+;; JAMES: Javascript As Middling Expression, Symbolically
 
 (define-module (rockit james write-js)
   #:use-module (ice-9 match)
