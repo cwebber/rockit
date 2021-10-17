@@ -101,9 +101,17 @@
   (member obj single-infixer-ops))
 
 (define (write-james->jessie james-expr op)
+  (define indent-level (make-parameter 0))
+  (define-syntax-rule (up-indentation body ...)
+    (parameterize ((indent-level (1+ (indent-level))))
+      body ...))
   ;; display to out port
   (define (dop str)
     (display str op))
+  (define (newline-indent)
+    (newline op)
+    (for-each (lambda _ (dop "  "))
+              (iota (* (indent-level)))))
   (define (for-each-sep f l sep)
     (let lp ([l l]
              [first? #t])
@@ -112,6 +120,18 @@
         [(item rest-l ...)
          (unless first?
            (dop sep))
+         (f item)
+         (lp rest-l #f)])))
+  ;; for each newline-indent
+  (define* (for-each-nli f l #:key [sep #f])
+    (let lp ([l l]
+             [first? #t])
+      (match l
+        ['() _void]
+        [(item rest-l ...)
+         (when (and sep (not first?))
+           (dop sep))
+         (newline-indent)
          (f item)
          (lp rest-l #f)])))
   (define (write-top expr)
@@ -128,10 +148,11 @@
       [('defn _ ...)
        (write-named-function expr #:top? #t)]
       [_ (write-statement expr)])
-    (newline op))
-
+    (newline op) (newline op))
   (define (write-block block-exprs)
-    (for-each-sep write-statement block-exprs "\n"))
+    (for-each-nli (lambda (exp)
+                    (write-statement exp))
+                  block-exprs))
 
   (define (write-statement expr)
     (define (gather-elif-middle elif-middle)
@@ -195,7 +216,10 @@
       ;; TRY block catcher finalizer
       [('try block catch-patterns ... #:finally finally-block)
        (dop "try {")
-       (write-block block)
+       (newline-indent)
+       (up-indentation
+        (write-block block))
+       (newline-indent)
        (dop "} ")
        (for-each write-catch-pattern catch-patterns)
        (dop " finally {")
@@ -376,7 +400,10 @@
        (dop " (")
        (write-func-params params)
        (dop ") {")
-       (write-block body)
+       (newline-indent)
+       (up-indentation
+        (write-block body))
+       (newline-indent)
        (dop "}")]))
 
   (define (write-function expr)
@@ -386,13 +413,15 @@
        (write-func-params params)
        (dop ") => (") ;; ISSUE: avoid () when not needed? or let eslint do that?
        (write-expr rhs)
-       (dop ") ")]
+       (dop ")")]
       [(_ (params ...) body ...)
        (dop "function (")
        (write-func-params params)
        (dop ") {")
-       (write-block body)
-       (dop "} ")]))
+       (up-indentation
+        (write-block body))
+       (newline-indent)
+       (dop "}")]))
 
   (define (write-func-params params)
     (define (write-param param)
@@ -415,7 +444,9 @@
          (dop ": ")
          (write-expr val)]))
     (dop "{")
-    (for-each-sep write-propdef expr ", ")
+    (up-indentation
+     (for-each-nli write-propdef expr #:sep ","))
+    (newline-indent)
     (dop "}"))
 
   (define (write-catch-pattern expr)
