@@ -1,4 +1,5 @@
-;; JAMES: Javascript As Middling Expression, Symbolically
+;; JAMES: Jessie As Middling Expression, Symbolically
+;; (Remembering of course that Jessie is a subset of Javascript!)
 
 (define-module (rockit james write-js)
   #:use-module (ice-9 match)
