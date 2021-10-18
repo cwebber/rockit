@@ -1,0 +1,179 @@
+#+TITLE: Blast off from Lisp to Javascript (and back?) with Team Rockit
+
+This is an experimental repository to convert a lispy DSL named James
+to a subset of Javascript named [[https://github.com/endojs/Jessie][Jessie]].  In the future, maybe more
+tools to translate between lispy and javascript worlds too!
+It uses [[https://www.gnu.org/software/guile/][Guile]]'s language tooling to do so.
+
+It's very experimental, not really usable yet.  Warning, warning, warning.
+
+* Show me some examples!
+
+You can see them yourself, run:
+
+: guile james-to-jessie.scm
+
+Look at the bottom of the file to see the code that's being converted.
+
+** Stateless singleton
+
+James program:
+
+#+BEGIN_SRC scheme
+(module
+ (defconst makeCounter (fn (init)
+                           (let value init)
+                           (return (%r
+                                    (: increment (fn () (+= value 1)))
+                                    (: decrement (fn () (-= value 1)))
+                                    (: makeOffsetCounter
+                                       (fn (delta) (return
+                                                    (makeCounter (+ value delta)))) )
+                                    )) ))
+ (defconst c1 (makeCounter 1))
+ (.-> c1 (.increment))
+ (.-> console (.log (.-> c1 (.decrement)))))
+#+END_SRC
+
+Jessie output:
+
+#+BEGIN_SRC javascript
+const makeCounter = function (init) {
+  let value = init;
+  return {
+    increment: function () {
+      value += value;
+    },
+    decrement: function () {
+      value -= value;
+    },
+    makeOffsetCounter: delta => (makeCounter(value + delta))
+  };
+};
+
+const c1 = makeCounter(1);
+
+c1.increment();
+
+console.log(c1.decrement());
+#+END_SRC
+
+** Mint
+
+#+BEGIN_SRC scheme
+(module
+ (defn (makeMint)
+   (defconst ledger (makeWeakMap))
+
+   (defconst issuer
+     (harden (%r (: makeEmptyPurse (fn () (.-> mint (.makePurse 0)))))))
+
+   (defconst mint
+     (harden
+      (%r
+       (: makePurse
+          (fn (initialBalance)
+              (defconst purse
+                (harden
+                 (%r
+                  (: getIssuer (fn () (return issuer)))
+                  (: getBalance (fn () (.-> ledger (.get purse))))
+
+                  (: deposit (fn (amount src)
+                                 (Nat (+ (.-> ledger (.get purse)) (Nat amount)))
+                                 (.-> ledger (.set src (- (Nat (.-> ledger (.get src))) amount)))
+                                 (.-> ledger (.set purse (+ (.-> ledger (.get purse)) amount)))
+                                 ))
+                  (: withdraw (fn (amount)
+                                  (defconst newPurse (.-> issuer (.makeEmptyPurse)))
+                                  (.-> newPurse (.deposit amount purse))
+                                  (return newPurse))))))
+
+              (.-> ledger (.set purse initialBalance))
+              (return purse))))))
+   (return mint))
+
+ ;; example from http://erights.org/elib/capability/ode/ode-capabilities.html
+ (defconst carolMint (makeMint))
+ (defconst aliceMainPurse (.-> carolMint (.makePurse 1000)))
+ (defconst bobMainPurse (.-> carolMint (.makePurse 0)))
+ (defconst paymentForBob (.-> aliceMainPurse (.withdraw 10)))
+
+ ;; (.-> bob (.foo paymentForBob))
+ (.-> bobMainPurse (.deposit 10 paymentForBob))
+
+ (.-> console (.log (.-> aliceMainPurse (.getBalance))))
+ (.-> console (.log (.-> bobMainPurse (.getBalance)))))
+#+END_SRC
+
+Jessie output:
+
+#+BEGIN_SRC javascript
+function makeMint () {
+  const ledger = makeWeakMap();
+  const issuer = harden({
+    makeEmptyPurse: function () {
+      mint.makePurse(0);
+    }
+  });
+  const mint = harden({
+    makePurse: function (initialBalance) {
+      const purse = harden({
+        getIssuer: () => issuer,
+        getBalance: function () {
+          ledger.get(purse);
+        },
+        deposit: function (amount, src) {
+          Nat(ledger.get(purse) + Nat(amount));
+          ledger.set(src, Nat(ledger.get(src)) - amount);
+          ledger.set(purse, ledger.get(purse) + amount);
+        },
+        withdraw: function (amount) {
+          const newPurse = issuer.makeEmptyPurse();
+          newPurse.deposit(amount, purse);
+          return newPurse;
+        }
+      });
+      ledger.set(purse, initialBalance);
+      return purse;
+    }
+  });
+  return mint;
+}
+
+const carolMint = makeMint();
+
+const aliceMainPurse = carolMint.makePurse(1000);
+
+const bobMainPurse = carolMint.makePurse(0);
+
+const paymentForBob = aliceMainPurse.withdraw(10);
+
+bobMainPurse.deposit(10, paymentForBob);
+
+console.log(aliceMainPurse.getBalance());
+
+console.log(bobMainPurse.getBalance());
+#+END_SRC
+
+* FAQ
+** Should I use this?
+
+Not yet for anything serious.  Maybe soon.
+
+** But I really want to!
+
+I know, me too.  It's early, though.
+
+** Can I do the opposite?  Can I actually hack this as a language in Guile?
+
+Soon, I hope.
+
+** What license is this under?
+
+Apache v2, though it might eventually include some LGPL bits borrowed
+from Guile.
+
+** Is this project's name a Pokemon reference?
+
+What?  No.  Whaaaaat????  Haha no.....
