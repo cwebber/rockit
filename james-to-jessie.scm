@@ -258,7 +258,7 @@
       ['null (dop "null")]
       [(or 'true #t) (dop "true")]
       [(or 'false #f) (dop "false")]
-      [(or 'void #f) (dop "void")]
+      [(or 'void) (dop "void")]
       [(? string?) (write-string expr)]
       [(? number?) (write-number expr)]
       [#(array-items ...)
