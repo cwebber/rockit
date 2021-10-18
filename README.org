@@ -15,24 +15,27 @@ You can see them yourself, run:
 
 Look at the bottom of the file to see the code that's being converted.
 
+(Thank you to Dan Connolly for supplying some of these examples, some
+of which were converted from the [[https://github.com/Agoric/agoric-sdk][Agoric]] and [[https://github.com/endojs/][Endo]] meta-codebases!)
+
 ** Stateless singleton
 
 James program:
 
 #+BEGIN_SRC clojure
 (module
- (defconst makeCounter (fn (init)
-                           (let value init)
-                           (return (%r
-                                    (: increment (fn () (+= value 1)))
-                                    (: decrement (fn () (-= value 1)))
-                                    (: makeOffsetCounter
-                                       (fn (delta) (return
-                                                    (makeCounter (+ value delta)))) )
-                                    )) ))
+ (defconst makeCounter
+   (fn (init)
+     (let value init)
+     (return (%r
+              (: increment (fn () (+= value 1)))
+              (: decrement (fn () (-= value 1)))
+              (: makeOffsetCounter
+                 (fn (delta)
+                   (return (makeCounter (+ value delta)))))))))
  (defconst c1 (makeCounter 1))
- (.-> c1 (.increment))
- (.-> console (.log (.-> c1 (.decrement)))))
+ (c1 .increment)
+ (console .log (c1 .decrement)))
 #+END_SRC
 
 Jessie output:
@@ -66,7 +69,7 @@ console.log(c1.decrement());
    (defconst ledger (makeWeakMap))
 
    (defconst issuer
-     (harden (%r (: makeEmptyPurse (fn () (.-> mint (.makePurse 0)))))))
+     (harden (%r (: makeEmptyPurse (fn () (mint.makePurse 0))))))
 
    (defconst mint
      (harden
@@ -77,33 +80,36 @@ console.log(c1.decrement());
                 (harden
                  (%r
                   (: getIssuer (fn () (return issuer)))
-                  (: getBalance (fn () (.-> ledger (.get purse))))
+                  (: getBalance (fn () (ledger.get purse)))
+                  (: deposit
+                     (fn (amount src)
+                       (Nat (+ (ledger.get purse) (Nat amount)))
+                       (ledger.set src (- (Nat (ledger.get src))
+                                          amount))
+                       (ledger.set purse (+ (ledger.get purse) amount))))
+                  (: withdraw
+                     (fn (amount)
+                       (defconst newPurse
+                         (issuer.makeEmptyPurse))
+                       (newPurse.deposit amount purse)
+                       (return newPurse))))))
 
-                  (: deposit (fn (amount src)
-                                 (Nat (+ (.-> ledger (.get purse)) (Nat amount)))
-                                 (.-> ledger (.set src (- (Nat (.-> ledger (.get src))) amount)))
-                                 (.-> ledger (.set purse (+ (.-> ledger (.get purse)) amount)))
-                                 ))
-                  (: withdraw (fn (amount)
-                                  (defconst newPurse (.-> issuer (.makeEmptyPurse)))
-                                  (.-> newPurse (.deposit amount purse))
-                                  (return newPurse))))))
-
-              (.-> ledger (.set purse initialBalance))
+              (ledger.set purse initialBalance)
               (return purse))))))
+
    (return mint))
 
  ;; example from http://erights.org/elib/capability/ode/ode-capabilities.html
  (defconst carolMint (makeMint))
- (defconst aliceMainPurse (.-> carolMint (.makePurse 1000)))
- (defconst bobMainPurse (.-> carolMint (.makePurse 0)))
- (defconst paymentForBob (.-> aliceMainPurse (.withdraw 10)))
+ (defconst aliceMainPurse (carolMint.makePurse 1000))
+ (defconst bobMainPurse (carolMint.makePurse 0))
+ (defconst paymentForBob (aliceMainPurse.withdraw 10))
 
  ;; (.-> bob (.foo paymentForBob))
- (.-> bobMainPurse (.deposit 10 paymentForBob))
+ (bobMainPurse.deposit 10 paymentForBob)
 
- (.-> console (.log (.-> aliceMainPurse (.getBalance))))
- (.-> console (.log (.-> bobMainPurse (.getBalance)))))
+ (console.log (aliceMainPurse.getBalance))
+ (console.log (bobMainPurse.getBalance)))
 #+END_SRC
 
 Jessie output:
