@@ -117,9 +117,9 @@
          (lp rest-l #f)])))
   (define (write-top expr)
     (match expr
-      [(or ('module top-exprs ...)
-           (top-exprs ...))
-       (for-each write-top-statement top-exprs)]))
+      [('module top-exprs ...)
+       (for-each write-top-statement top-exprs)]
+      [_ (write-top-statement expr)]))
   (define (write-top-statement expr)
     (match expr
       [('import _ ...)
@@ -693,3 +693,11 @@
                         (return (harden (%r (: add finish)))))
                       (harden createSHA256)
                       (export create))))
+
+
+(display "** Nested math anti-infix example: **\n")
+(display
+ (james->jessie-str '(+ 1 2 (* 3 4)
+                        (numberFrob (- 42 2)
+                                    88)
+                        -55)))
