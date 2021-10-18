@@ -498,7 +498,7 @@
   (define (write-export expr)
     (match expr
       ;; TODO: more to come
-      [((? valid-id? export-ids) ...)
+      [('export (? valid-id? export-ids) ...)
        (dop "export {")
        (write-func-params export-ids)
        (dop "};")]))
@@ -682,6 +682,8 @@
 (display "** hasher.js: **\n")
 (display
  (james->jessie-str '(module
+                      (import (assert) #:from "@agoric/assert")
+                      (import (createHash) #:from "crypto")
                       (defn (createSha256 [initial undefined])
                         (defconst hash
                           (createHash "sha256"))
@@ -696,7 +698,8 @@
                         (if initial
                             (add initial))
                         (return (harden (%r (: add finish)))))
-                      (harden createSHA256))))
+                      (harden createSHA256)
+                      (export (create)))))
 
 '(module
   (defn (createSha256 [initial undefined])
