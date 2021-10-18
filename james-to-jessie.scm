@@ -1,4 +1,4 @@
-;; JAMES: Jessie As Middling Expression, Symbolically
+;; JAMES: Jessie Ast Middled Expression, Symbolic
 ;; (Remembering of course that Jessie is a subset of Javascript!)
 
 (define-module (rockit james write-js)
