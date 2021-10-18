@@ -60,7 +60,7 @@
 ;; (valid-id? '9foo) => #f
 ;; (valid-id? 'if)   => #f
 
-(define _void (if #f #f))
+(define _undefined (if #f #f))
 
 (define (dot-method-expr? expr)
   (match expr
@@ -97,7 +97,7 @@
     (let lp ([l l]
              [first? #t])
       (match l
-        ['() _void]
+        ['() _undefined]
         [(item rest-l ...)
          (unless first?
            (dop sep))
@@ -108,7 +108,7 @@
     (let lp ([l l]
              [first? #t])
       (match l
-        ['() _void]
+        ['() _undefined]
         [(item rest-l ...)
          (when (and sep (not first?))
            (dop sep))
@@ -286,7 +286,7 @@
        (write-expr initial-expr)
        (let lp ((dot-method-calls dot-method-calls))
          (match dot-method-calls
-           ['() _void]
+           ['() _undefined]
            [(((? dot-method? dot-method) args ...) rest ...)
             (dop (symbol->string dot-method))
             (dop "(")
