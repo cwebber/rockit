@@ -496,7 +496,12 @@
        (dop ";")]))
 
   (define (write-export expr)
-    (error 'TODO))
+    (match expr
+      ;; TODO: more to come
+      [((? valid-id? export-ids) ...)
+       (dop "export {")
+       (write-func-params export-ids)
+       (dop "};")]))
 
   (define (write-string expr)
     ;; TODO: This probably doesn't handle all unicode stuff,
