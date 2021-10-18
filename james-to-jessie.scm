@@ -414,12 +414,13 @@
   ;;   WHILE LEFT_PAREN expr RIGHT_PAREN arm
   (define (write-while expr)
     (match expr
-      [(condition body ...)
+      [('while condition body ...)
        (dop "while (")
        (write-expr condition)
        (write-expr ") {")
        (up-indentation
         (write-block body))
+       (newline-indent)
        (write-expr "}")]))
 
   ;;   SWITCH LEFT_PAREN expr RIGHT_PAREN LEFT_BRACE clause* RIGHT_BRACE
