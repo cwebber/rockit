@@ -425,7 +425,41 @@
 
   ;;   SWITCH LEFT_PAREN expr RIGHT_PAREN LEFT_BRACE clause* RIGHT_BRACE
   (define (write-switch expr)
-    (error 'TODO))
+    (define (_write-it sw-expr cases default)
+      (dop "switch (")
+      (write-expr sw-expr)
+      (dop ") {")
+      (up-indentation
+       (for-each-nli
+        (match-lambda
+          [(case-matches-expr body ...)
+           (dop "case ")
+           (write-expr case-matches-expr)
+           (dop ": ")
+           (write-switch-case-body body)])
+        cases)
+       (when default
+         (dop "default: ")
+         (write-switch-case-body default)))
+      (dop "}"))
+    (define (write-switch-case-body expr)
+      (match expr
+        [(single-body-expr)
+         (up-indentation
+          (newline-indent)
+          (write-expr single-body-expr))
+         (newline-indent)]
+        [(body-exprs ...)
+         (dop "{")
+         (up-indentation
+          (write-block body-exprs))
+         (newline-indent)
+         (dop "}")]))
+    (match expr
+      [('switch sw-expr cases ... #:default (default-case ...))
+       (_write-it sw-expr cases default-case)]
+      [('switch sw-expr cases ...)
+       (_write-it sw-expr cases #f)]))
 
   (define (write-import expr)
     (error 'TODO))
