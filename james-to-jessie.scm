@@ -70,7 +70,6 @@
 
 (define multi-infixer-ops
   '(+ - / *))
-
 (define single-infixer-ops
   '(=== ==! % += -=))
 
@@ -78,6 +77,9 @@
   (member obj multi-infixer-ops))
 (define (single-infixer-op? obj)
   (member obj single-infixer-ops))
+(define (infixer-op? expr)
+  (or (multi-infixer-op? expr)
+      (single-infixer-op? expr)))
 
 (define (write-james->jessie james-expr op)
   (define indent-level (make-parameter 0))
@@ -240,6 +242,16 @@
       [expr (write-expr expr)
             (dop ";")]))
 
+  ;; Jessie is sensible and decides to reject "order of operation hell"
+  ;; and so do we by wrapping all nested infixed things into parenthes
+  (define (write-infix-safe-expr expr)
+    (match expr
+      [((? infixer-op?) rest ...)
+       (dop "(")
+       (write-expr expr)
+       (dop ")")]
+      [_ (write-expr expr)]))
+
   (define (write-expr expr)
     (match expr
       ['undefined (dop "undefined")]
@@ -260,13 +272,13 @@
       [((or 'fn 'function 'λ) _ ...)
        (write-function expr)]
       [((? single-infixer-op? infixer-op) arg1 arg2)
-       (write-expr arg1)
+       (write-infix-safe-expr arg1)
        (dop " ")
        (dop (symbol->string infixer-op))
        (dop " ")
-       (write-expr arg2)]
+       (write-infix-safe-expr arg1)]
       [((? multi-infixer-op? infixer-op) arg1 arg-rest ...)
-       (for-each-sep write-expr
+       (for-each-sep write-infix-safe-expr
                      (cons arg1 arg-rest)
                      (string-append " " (symbol->string infixer-op) " "))]
 
