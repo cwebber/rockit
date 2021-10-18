@@ -699,7 +699,7 @@
                             (add initial))
                         (return (harden (%r (: add finish)))))
                       (harden createSHA256)
-                      (export (create)))))
+                      (export create))))
 
 '(module
   (defn (createSha256 [initial undefined])
