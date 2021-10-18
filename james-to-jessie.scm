@@ -315,6 +315,7 @@
        (write-expr method-of-expr)
        (dop (symbol->string dot-method))]
 
+      ;; At this point we let whatever expression be the invocation
       [(to-call args ...)
        (write-expr to-call)
        (dop "(")
