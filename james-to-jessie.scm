@@ -600,7 +600,9 @@
     (defconst origin (%r (: getX (fn () (return 0))) (: getY (fn () (return 0)))))
     (.-> console (.log (.-> origin (.getY)))))))
 
-(display "** maker **\n")
+(display ".--------.\n")
+(display "| maker: |\n")
+(display "'--------'\n")
 (display
  (james->jessie-str
   '(module
@@ -618,7 +620,10 @@
     (.-> console (.log (.-> c1 (.decrement))))
     )))
 
-(display "** mint **\n")
+(newline)
+(display ".-------.\n")
+(display "| mint: |\n")
+(display "'-------'\n")
 (display
  (james->jessie-str
   '(module
@@ -672,7 +677,10 @@
     )
   ))
 
-(display "** hasher.js: **\n")
+(newline)
+(display ".------------.\n")
+(display "| hasher.js: |\n")
+(display "'------------'\n")
 (display
  (james->jessie-str '(module
                       (import (assert) #:from "@agoric/assert")
@@ -695,7 +703,10 @@
                       (export create))))
 
 
-(display "** Nested math anti-infix example: **\n")
+(newline)
+(display ".---------------------------------.\n")
+(display "| Nested math anti-infix example: |\n")
+(display "'---------------------------------'\n")
 (display
  (james->jessie-str '(+ 1 2 (* 3 4)
                         (numberFrob (- 42 2)
