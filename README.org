@@ -19,7 +19,7 @@ Look at the bottom of the file to see the code that's being converted.
 
 James program:
 
-#+BEGIN_SRC scheme
+#+BEGIN_SRC clojure
 (module
  (defconst makeCounter (fn (init)
                            (let value init)
@@ -60,7 +60,7 @@ console.log(c1.decrement());
 
 ** Mint
 
-#+BEGIN_SRC scheme
+#+BEGIN_SRC clojure
 (module
  (defn (makeMint)
    (defconst ledger (makeWeakMap))
