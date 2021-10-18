@@ -462,7 +462,38 @@
        (_write-it sw-expr cases #f)]))
 
   (define (write-import expr)
-    (error 'TODO))
+    (match expr
+      [('import '* #:as (? valid-id? def-import) #:from (? string? import-path))
+       (dop "import * as ")
+       (dop (symbol->string def-import))
+       (dop " from ")
+       (write-string import-path)
+       (dop ";")]
+      [('import (? string? import-path))
+       (dop "import ")
+       (write-string import-path)
+       (dop ";")]
+      [('import (? valid-id? import-name) #:from (? string? import-path))
+       (dop "import ")
+       (dop (symbol->string import-name))
+       (dop " from ")
+       (write-string import-path)
+       (dop ";")]
+      [('import ((? valid-id? import-names) ...) #:from (? string? import-path))
+       (dop "import {")
+       (write-func-params import-names)
+       (dop "} from ")
+       (write-string import-path)
+       (dop ";")]
+      [('import (((? valid-id? import-names) #:as (? valid-id? bind-names)) ...)
+                #:from (? string? import-path))
+       (dop "import {")
+       (write-func-params import-names)
+       (dop " as ")
+       (write-func-params bind-names)
+       (dop "} from ")
+       (write-string import-path)
+       (dop ";")]))
 
   (define (write-export expr)
     (error 'TODO))
