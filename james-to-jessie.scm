@@ -7,28 +7,6 @@
   #:export (write-james->jessie
             james->jessie-str))
 
-(define test-mod
-  '(module
-    ;; #:name "@agoric/SwingSet/storageAPI"
-    (import (%d assert
-                (details #:as X))
-            #:from "@agoric/assert")
-    (defn (insistStorageAPI kvStore)
-      #:export
-      (for (const n of #("has" "getKeys" "get" "set" "delete"))
-           (assert (in n kvStore)
-                   (X (.concat "" "kvStore." n "is missing, cannot use")))))
-
-    (defn (insistEnhancedStorageAPI kvStore)
-      #:export
-      (insistStorageAPI kvStore)
-      (for (const n of #("enumeratePrefixedKeys"
-                         "getPrefixedValues"
-                         "deletePrefixedKeys"))
-           (assert (in n kvStore)
-                   (X (.concat "" "kvStore." n "is missing, cannot use")))))))
-
-
 ;; Things that aren't allowed to be variable names
 (define jessie-special-terms
   '(null
