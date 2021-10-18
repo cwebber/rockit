@@ -308,7 +308,8 @@
        (write-expr method-of-expr)
        (dop (symbol->string dot-method))]
 
-      ;; Otherwise... it's some other evaluated procedure probably
+      ;; Otherwise... it's some other evaluated procedure defined by the first
+      ;; argument's evaluated expression
       [(method-of-expr (? dot-method? dot-method) args ...)
        (write-expr expr)
        (dop (symbol->string dot-method))
