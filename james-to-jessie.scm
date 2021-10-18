@@ -292,13 +292,6 @@
                      (cons arg1 arg-rest)
                      (string-append " " (symbol->string infixer-op) " "))]
 
-      ;; Otherwise... it's some other evaluated procedure probably
-      [(method-of-expr (? dot-method? dot-method) args ...)
-       (write-expr expr)
-       (dop (symbol->string dot-method))
-       (dop "(")
-       (for-each-sep write-expr args ", ")
-       (dop ")")]
       [('.-> initial-expr dot-method-calls ...)
        (write-expr initial-expr)
        (let lp ((dot-method-calls dot-method-calls))
@@ -314,6 +307,14 @@
       [('.m method-of-expr (? dot-method? dot-method))
        (write-expr method-of-expr)
        (dop (symbol->string dot-method))]
+
+      ;; Otherwise... it's some other evaluated procedure probably
+      [(method-of-expr (? dot-method? dot-method) args ...)
+       (write-expr expr)
+       (dop (symbol->string dot-method))
+       (dop "(")
+       (for-each-sep write-expr args ", ")
+       (dop ")")]
 
       ;; At this point we let whatever expression be the invocation
       [(to-call args ...)
