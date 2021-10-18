@@ -693,20 +693,3 @@
                         (return (harden (%r (: add finish)))))
                       (harden createSHA256)
                       (export create))))
-
-'(module
-  (defn (createSha256 [initial undefined])
-    (defconst hash
-      (createHash "sha256"))
-    (let done #f)
-    (defn (add more)
-      (assert (not done))
-      (hash.update more))
-    (defn (finish)
-      (assert (not done))
-      (set! done #t)
-      (return (hash.digest "hex")))
-    (if initial
-        (add initial))
-    (return (harden (%r (: add finish)))))
-  (harden createSHA256))
