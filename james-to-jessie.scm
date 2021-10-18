@@ -376,10 +376,11 @@
        (dop " ")
        (dop (symbol->string (keyword->symbol of-or-in)))
        (dop " ")
-       (write-expr bindingin-expr)
+       (write-expr binding-expr)
        (dop ") {")
        (up-indentation
         (write-block body))
+       (newline-indent)
        (dop "}")]
       ;; TODO: C-style (two or?) three part or
       ;;
