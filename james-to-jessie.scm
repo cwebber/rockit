@@ -258,6 +258,7 @@
       ['null (dop "null")]
       [(or 'true #t) (dop "true")]
       [(or 'false #f) (dop "false")]
+      ;; TODO: JS void is a unary operator that always evaluates to 'undefined'
       [(or 'void) (dop "void")]
       [(? string?) (write-string expr)]
       [(? number?) (write-number expr)]
@@ -276,7 +277,7 @@
        (dop " ")
        (dop (symbol->string infixer-op))
        (dop " ")
-       (write-infix-safe-expr arg1)]
+       (write-infix-safe-expr arg2)]
       [((? multi-infixer-op? infixer-op) arg1 arg-rest ...)
        (for-each-sep write-infix-safe-expr
                      (cons arg1 arg-rest)
@@ -391,6 +392,8 @@
        (write-id binding-expr)
        (dop "; ")
        (write-expr continue-loop-statement)
+       (dop "; ")
+       (write-expr update-statement)
        (dop ") {")
        (up-indentation
         (write-block body))
@@ -501,6 +504,9 @@
     ;; but it's the fastest hacky way...
     (format op "~s" expr))
 
+  ;; TODO: Named `function NAME(...args) { }` functions may end up being removed
+  ;; from Jessie in favour of `const NAME = (...args) => { }`.  It would be
+  ;; better to avoid them.
   (define* (write-named-function expr #:key [top? #f])
     ;; TODO async, etc
     (match expr
@@ -508,7 +514,7 @@
           body ...)
        (dop "function ")
        (dop (symbol->string func-id))
-       (dop " (")
+       (dop "(")
        (write-func-params params)
        (dop ") {")
        (up-indentation
@@ -518,14 +524,12 @@
 
   (define (write-function expr)
     (match expr
-      ;; Arrow expressions in JS are... goofy.  They have implicit return
-      ;; whereas normal functions don't, and they have a compact representation
-      ;; that people seem to like, but given that the semantics are *not*
-      ;; the same, we are cautious about when to write them out and default to
-      ;; only when there's a an explicit return as the only part of a
-      ;; procedure body.  Otherwise out we write out a more verbose
-      ;; function representation.
-      [(_ (params ...) ('return return-expr))
+      ;; Arrow expressions are either `(ARGS) => { BODY }` where the body is the
+      ;; same as a `function` body, or `(ARGS) => EXPR` which is usually
+      ;; identical to `(ARGS) => { return EXPR; }`.  The exception is that the
+      ;; latter EXPR must be surrounded by parens if it is an object literal to
+      ;; disambiguate from the block body.
+      [(_ (params ...) body ...)
        (match params
          [((? valid-id? one-param))
           (write-id one-param)]
@@ -534,28 +538,25 @@
           (write-func-params params)
           (dop ")")])
        (dop " => ")
-       (match return-expr
-         ;; TODO: Are *all* expressions safe to not wrap in parens?
-         ;;   dunno...
-         ;; certain expressions 
-         [(or (? valid-id?)
-              #t #f 'true 'false 'null 'undefined
-              (? number?))
-          (write-expr return-expr)]
-         ;; otherwise let's be careful and wrap in parens
+       (match body
+         ;; A body consisting of just a return expression.
+         [(('return return-expr))
+          (match return-expr
+           ;; The exception: a single object literal expression needs parens.
+           [('%r props ...)
+            (dop "(")
+            (write-expr (car body))
+            (dop ")")]
+           ;; Other expressions can be written out.
+           [_ (write-expr return-expr)])]
+         ;; Statements that need to have a block body...
          [_
-          (dop "(")
-          (write-expr return-expr)
-          (dop ")")])]
-      ;; and more vanilla functions...
-      [(_ (params ...) body ...)
-       (dop "function (")
-       (write-func-params params)
-       (dop ") {")
-       (up-indentation
-        (write-block body))
-       (newline-indent)
-       (dop "}")]))
+          (dop "{")
+          (up-indentation
+            (write-block body))
+          (newline-indent)
+          (dop "}")])]
+    ))
 
   (define (write-func-params params)
     (define (write-param param)
@@ -699,7 +700,7 @@
                         (if initial
                             (add initial))
                         (return (harden (%r (: add finish)))))
-                      (harden createSHA256)
+                      (harden createSha256)
                       (export create))))
 
 
