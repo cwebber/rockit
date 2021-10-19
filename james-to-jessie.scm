@@ -302,7 +302,7 @@
       ;; Otherwise... it's some other evaluated procedure defined by the first
       ;; argument's evaluated expression
       [(method-of-expr (? dot-method? dot-method) args ...)
-       (write-expr expr)
+       (write-expr method-of-expr)
        (dop (symbol->string dot-method))
        (dop "(")
        (for-each-sep write-expr args ", ")
@@ -598,8 +598,10 @@
 (display
  (james->jessie-str
   '(module
-    (defconst origin (%r (: getX (fn () (return 0))) (: getY (fn () (return 0)))))
-    (.-> console (.log (.-> origin (.getY)))))))
+    (defconst origin
+      (%r (: getX (fn () (return 0)))
+          (: getY (fn () (return 0)))))
+    (.-> console.log (.getY)))))
 
 (display ".--------.\n")
 (display "| maker: |\n")
@@ -607,19 +609,18 @@
 (display
  (james->jessie-str
   '(module
-    (defconst makeCounter (fn (init)
-                              (let value init)
-                              (return (%r
-                                       (: increment (fn () (+= value 1)))
-                                       (: decrement (fn () (-= value 1)))
-                                       (: makeOffsetCounter
-                                          (fn (delta) (return
-                                                       (makeCounter (+ value delta)))) )
-                                       )) ))
+    (defconst makeCounter
+      (fn (init)
+        (let value init)
+        (return (%r
+                 (: increment (fn () (+= value 1)))
+                 (: decrement (fn () (-= value 1)))
+                 (: makeOffsetCounter
+                    (fn (delta)
+                      (return (makeCounter (+ value delta)))))))))
     (defconst c1 (makeCounter 1))
-    (.-> c1 (.increment))
-    (.-> console (.log (.-> c1 (.decrement))))
-    )))
+    (c1 .increment)
+    (console .log (c1 .decrement)))))
 
 (newline)
 (display ".-------.\n")
@@ -632,7 +633,7 @@
       (defconst ledger (makeWeakMap))
 
       (defconst issuer
-        (harden (%r (: makeEmptyPurse (fn () (.-> mint (.makePurse 0)))))))
+        (harden (%r (: makeEmptyPurse (fn () (mint.makePurse 0))))))
 
       (defconst mint
         (harden
@@ -643,40 +644,36 @@
                    (harden
                     (%r
                      (: getIssuer (fn () (return issuer)))
-                     (: getBalance (fn () (.-> ledger (.get purse))))
+                     (: getBalance (fn () (ledger.get purse)))
+                     (: deposit
+                        (fn (amount src)
+                          (Nat (+ (edger.get purse) (Nat amount)))
+                          (ledger.set src (- (Nat (ledger.get src))
+                                             amount))
+                          (ledger.set purse (+ (ledger.get purse) amount))))
+                     (: withdraw
+                        (fn (amount)
+                          (defconst newPurse
+                            (issuer.makeEmptyPurse))
+                          (newPurse.deposit amount purse)
+                          (return newPurse))))))
 
-                     (: deposit (fn (amount src)
-                                    (Nat (+ (.-> ledger (.get purse)) (Nat amount)))
-                                    (.-> ledger (.set src (- (Nat (.-> ledger (.get src))) amount)))
-                                    (.-> ledger (.set purse (+ (.-> ledger (.get purse)) amount)))
-                                    ))
-                     (: withdraw (fn (amount)
-                                     (defconst newPurse (.-> issuer (.makeEmptyPurse)))
-                                     (.-> newPurse (.deposit amount purse))
-                                     (return newPurse)))
-                     )))
+                 (ledger.set purse initialBalance)
+                 (return purse))))))
 
-                 (.-> ledger (.set purse initialBalance))
-                 (return purse)
-                 ))
-          )))
-
-      (return mint)
-      )
+      (return mint))
 
     ;; example from http://erights.org/elib/capability/ode/ode-capabilities.html
     (defconst carolMint (makeMint))
-    (defconst aliceMainPurse (.-> carolMint (.makePurse 1000)))
-    (defconst bobMainPurse (.-> carolMint (.makePurse 0)))
-    (defconst paymentForBob (.-> aliceMainPurse (.withdraw 10)))
+    (defconst aliceMainPurse (carolMint.makePurse 1000))
+    (defconst bobMainPurse (carolMint.makePurse 0))
+    (defconst paymentForBob (aliceMainPurse.withdraw 10))
 
     ;; (.-> bob (.foo paymentForBob))
-    (.-> bobMainPurse (.deposit 10 paymentForBob))
+    (bobMainPurse.deposit 10 paymentForBob)
 
-    (.-> console (.log (.-> aliceMainPurse (.getBalance))))
-    (.-> console (.log (.-> bobMainPurse (.getBalance))))
-    )
-  ))
+    (console.log (aliceMainPurse.getBalance))
+    (console.log (bobMainPurse.getBalance)))))
 
 (newline)
 (display ".------------.\n")
